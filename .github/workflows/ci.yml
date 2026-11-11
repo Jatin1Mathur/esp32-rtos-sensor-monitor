@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host-tests:
+    name: Host tests (${{ matrix.compiler }}, ${{ matrix.sanitizer || 'no sanitizer' }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { compiler: g++, sanitizer: "" }
+          - { compiler: clang++, sanitizer: "" }
+          - { compiler: clang++, sanitizer: address }
+          - { compiler: g++, sanitizer: thread }
+    env:
+      TSAN_OPTIONS: halt_on_error=1
+      ASAN_OPTIONS: halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DSANITIZE=${{ matrix.sanitizer }}
+      - name: Build (warnings are errors)
+        run: cmake --build build -j
+      - name: Test (simulation repeated to shake out races)
+        run: ctest --test-dir build --output-on-failure --repeat until-fail:5
+
+  bridge-tests:
+    name: Flask bridge tests
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pytest -q
+
+  firmware:
+    name: Firmware build (PlatformIO, ESP32)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('platformio.ini') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install platformio
+      - run: pio run

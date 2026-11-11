@@ -1,0 +1,7 @@
+build/
+.pio/
+.vscode/
+src/config.h
+__pycache__/
+.pytest_cache/
+*.pyc

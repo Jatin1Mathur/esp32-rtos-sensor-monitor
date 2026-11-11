@@ -1,0 +1,4 @@
+flask>=3.0
+pydantic>=2.6
+requests>=2.31
+pytest>=8.0
