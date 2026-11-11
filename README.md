@@ -105,7 +105,7 @@ FORWARD_URL=https://example.com/ingest python app.py    # FORWARD_URL is optiona
 
 **Firmware** (M5Stack Core + SHT3x, e.g. ENV unit on Port A)
 ```bash
-cp src/config.example.h src/config.h   # set Wi-Fi, bridge URL, I2C pins
+cp src/app_config.example.h src/app_config.h   # set Wi-Fi, bridge URL, I2C pins
 pio run -t upload && pio device monitor
 ```
 

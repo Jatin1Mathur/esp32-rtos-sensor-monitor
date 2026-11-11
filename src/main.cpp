@@ -14,10 +14,10 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-#if __has_include("config.h")
-#include "config.h"
+#if __has_include("app_config.h")
+#include "app_config.h"
 #else
-#include "config.example.h"
+#include "app_config.example.h"
 #endif
 
 #include "platform/freertos_adapters.h"

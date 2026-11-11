@@ -1,7 +1,7 @@
 build/
 .pio/
 .vscode/
-src/config.h
+src/app_config.h
 __pycache__/
 .pytest_cache/
 *.pyc

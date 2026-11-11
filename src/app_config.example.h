@@ -1,5 +1,5 @@
-// Copy this file to src/config.h and fill in your values.
-// src/config.h is in .gitignore so credentials never end up on GitHub.
+// Copy this file to src/app_config.h and fill in your values.
+// src/app_config.h is in .gitignore so credentials never end up on GitHub.
 #pragma once
 
 #define WIFI_SSID "your-ssid"
