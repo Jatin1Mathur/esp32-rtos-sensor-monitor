@@ -22,6 +22,10 @@
 
 #include "platform/freertos_adapters.h"
 #include "sm/sht3x.h"
+#ifdef USE_REPLAY_SENSOR
+#include "replay_data.h"
+#include "sm/replay_sensor.h"
+#endif
 #include "sm/supervisor.h"
 #include "sm/tasks.h"
 
@@ -49,7 +53,13 @@ platform::WifiNetwork g_network;
 platform::ArduinoHttpClient g_http(BRIDGE_URL, kHttpTimeoutMs);
 platform::Esp32Platform g_platform;
 
+#ifdef USE_REPLAY_SENSOR
+// No sensor connected: play back real recorded office readings
+// (UCI/Kaggle Occupancy Detection dataset, see data/README.md).
+sm::ReplaySensor g_sensor(replay_data::kReadings, replay_data::kCount);
+#else
 sm::Sht3x g_sensor(g_bus, g_i2c_mutex, g_clock);
+#endif
 sm::HeartbeatTable g_heartbeats;
 sm::Requests g_requests;
 sm::Stats g_stats;

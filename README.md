@@ -12,6 +12,12 @@ sensor and made the sample timing irregular. Here the work is split into
 FreeRTOS tasks with clear ownership, and the concurrency logic is tested on
 the host with GoogleTest and ThreadSanitizer.
 
+**Real data, no hardware needed.** Instead of invented numbers, the project
+replays **2,665 real office-room measurements** (UCI/Kaggle *Occupancy
+Detection* dataset, CC BY 4.0, see [`data/README.md`](data/README.md)) through
+the same tasks, queues and bridge. A `ReplaySensor` implements the same
+`ISensor` interface as the SHT3x driver, so nothing else changes.
+
 ## Architecture
 
 ```mermaid
@@ -82,8 +88,14 @@ tests plug in fakes and `std::thread` versions with the same semantics.
   outage in the middle. It checks that sequence numbers arrive in order and that
   **delivered + dropped = generated**, so no sample is ever lost without being
   counted.
-* **Flask bridge**: pytest with schema validation, gap/duplicate detection and
-  forwarding failures.
+* **Real-data replay** ([`test_dataset_replay.cpp`](host_tests/test_dataset_replay.cpp)):
+  all 2,665 recorded readings go through sensor → queue → comm → HTTP with a
+  200-second Wi‑Fi outage in the middle. Every value the server receives must be
+  exactly the recorded value for that sequence number.
+* **Flask bridge**: pytest with schema validation, gap/duplicate detection,
+  forwarding failures, and the whole dataset sent through the bridge.
+
+In total: 39 C++ tests and 16 Python tests.
 
 CI (GitHub Actions) builds with GCC and Clang (warnings as errors), runs the
 tests under **ASan/UBSan** and **ThreadSanitizer** (repeated 5×), runs the
@@ -103,10 +115,20 @@ cd server && pip install -r requirements.txt && pytest
 FORWARD_URL=https://example.com/ingest python app.py    # FORWARD_URL is optional
 ```
 
-**Firmware** (M5Stack Core + SHT3x, e.g. ENV unit on Port A)
+**Demo without any hardware** (real data through the bridge)
+```bash
+cd server
+python app.py                            # terminal 1: start the bridge
+python replay_client.py --limit 100      # terminal 2: send 100 real readings
+curl http://localhost:5000/api/devices/replay-01
+```
+
+**Firmware**
 ```bash
 cp src/app_config.example.h src/app_config.h   # set Wi-Fi, bridge URL, I2C pins
-pio run -t upload && pio device monitor
+pio run -e m5stack-replay -t upload            # M5Stack only, replays the dataset
+pio run -e m5stack-sht3x  -t upload            # M5Stack + SHT3x (ENV unit on Port A)
+pio device monitor
 ```
 
 ## Project layout
@@ -115,13 +137,17 @@ pio run -t upload && pio device monitor
 lib/sm_core/        platform-independent core (driver, tasks, supervisor, JSON)
 src/main.cpp        FreeRTOS task creation and wiring
 src/platform/       FreeRTOS / Arduino adapters (static queue, mutex, Wi-Fi, HTTP)
-host_tests/         GoogleTest suite + threaded simulation
-server/             Flask bridge + pytest
+src/replay_data.h   dataset as a C array in flash (generated)
+host_tests/         GoogleTest suite, threaded simulation, real-data replay
+server/             Flask bridge, replay client, pytest
+data/               real temperature/humidity dataset + source and license
+tools/              script that converts the raw dataset
 ```
 
 ## Status
 
-* Host tests, sanitizers and the bridge tests pass in CI; the firmware builds in CI.
+* Host tests, sanitizers and the bridge tests pass in CI; both firmware variants build in CI.
+* Not yet run on a physical M5Stack (I don't have one yet); the replay build is ready for it.
 * Next: measure real stack usage and timing jitter on the M5Stack, add a task
   watchdog (`esp_task_wdt`) in addition to the software heartbeat, and buffer
   samples in flash for outages longer than one minute.

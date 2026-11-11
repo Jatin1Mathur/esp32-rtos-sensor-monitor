@@ -39,8 +39,10 @@ add_executable(host_tests
   host_tests/test_sht3x.cpp
   host_tests/test_supervisor.cpp
   host_tests/test_tasks.cpp
-  host_tests/test_pipeline_sim.cpp)
+  host_tests/test_pipeline_sim.cpp
+  host_tests/test_dataset_replay.cpp)
 target_include_directories(host_tests PRIVATE host_tests/support)
+target_compile_definitions(host_tests PRIVATE DATASET_CSV="${CMAKE_SOURCE_DIR}/data/office_room_2015.csv")
 target_link_libraries(host_tests PRIVATE sm_core GTest::gmock_main)
 
 include(GoogleTest)
